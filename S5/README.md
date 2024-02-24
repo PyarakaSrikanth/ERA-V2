@@ -177,7 +177,7 @@ from utils import *
   * Learning rate : 0.01
   * Epochs : 20
   * Total parameters trained : 593200
-  * Output with `Training accuracy : 99.18 ` and `Test accuracy : 99.36`
+  * Output with `Training accuracy : 99.20 ` and `Test accuracy : 99.19`
 ```
 ==========================================================================================
 Layer (type:depth-idx)                   Output Shape              Param #
