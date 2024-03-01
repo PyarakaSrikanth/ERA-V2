@@ -124,11 +124,6 @@ Estimated Total Size (MB): 3.15
 ----------------------------------------------------------------
 ```
 
-**Test Accuracy : 99.43**
+**Test Accuracy : 99.43** at Epoch 18
 
 
-# References
-
-- As I m new referred below Medium article
-
-- [Reference](https://ravivaishnav20.medium.com/handwritten-digit-recognition-using-pytorch-get-99-5-accuracy-in-20-k-parameters-bcb0a2bdfa09)
