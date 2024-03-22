@@ -2,7 +2,7 @@
 
 * Change the dataset to CIFAR10
 * Make this network:
-C1 C2 c3 P1 C3 C4 C5 c6 P2 C7 C8 C9 GAP C10
+C1 C2 c3 P1 C4 C4 C6 c7 P2 C8 C9 C10 GAP c11
 * Keep the parameter count less than 50000
 * Try and add one layer to another
 * Max Epochs is 20
@@ -10,10 +10,10 @@ C1 C2 c3 P1 C3 C4 C5 c6 P2 C7 C8 C9 GAP C10
   * Network with Group Normalization
   * Network with Layer Normalization
   * Network with Batch Normalization
-  * Print 10 Misclassified image.
+  * Print 10 Misclassified images.
 
 **********************************************************************
-* Model Trained with C1 C2 c3 P1 C3 C4 C5 c6 P2 C7 C8 C9 GAP c10 Network with below Hyperparameters
+* Model Trained with C1 C2 c3 P1 C4 C4 C6 c7 P2 C8 C9 C10 GAP c11 Network with below Hyperparameters
 	* Batch Size: 128
 	* lr : 0.01
 	* Momentum :0.9
@@ -28,19 +28,19 @@ C1 C2 c3 P1 C3 C4 C5 c6 P2 C7 C8 C9 GAP C10
 * Network with Batch Normalization
   
 	- [S8_BatchNormalization.ipynb](S8_BatchNormalization.ipynb)
-	- Train Accuracy : 76.07%
-	- Test Accuracy : 77.79%
+	- Train Accuracy : 75.70%
+	- Test Accuracy : 78.17%
 
 
 * Network with Layer Normalization
    	- [S8_LayerNormalization.ipynb](S8_LayerNormalization.ipynb)
-   	- Train Accuracy : 75 %
-   	- Test Accuracy :  77.06%
+   	- Train Accuracy: 74.74 %
+   	- Test Accuracy :  76.99%
    	  
  * Network with Group Normalization
    	- [S8_GroupNormalization.ipynb](S8_GroupNormalization.ipynb)
-    	- Train Accuracy : 75.48%
-    	- Test Accuracy : 77.53%
+    	- Train Accuracy: 75.06%
+    	- Test Accuracy : 77.95%
     
 	
 * [Weights](Weights) folder consists saved model objects/weights for reuse purpose.
@@ -116,11 +116,11 @@ Estimated Total Size (MB): 1.72
 ## Misclassified Images:
 
 ### Misclassified Image - Batch Normalization 
-![image](images/BN_Missclassification.png)
+![image](images/BN_Misclassification.png)
 ### Misclassified Image - Group Normalization 
 ![image](images/GN_Misclassification.png)
 ### Mispredicted Image - Layer Normalization 
-![image](images/LN_Missclassification.png)
+![image](images/LN_Misclassification.png)
 
 
 ## Confusion Matrices :
