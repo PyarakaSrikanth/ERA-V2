@@ -9,6 +9,8 @@
   const state = {
     sidebarOpen: false,
     detectedPosts: new Map(),
+    scanTimer: null,
+    hasApiKey: false,
   };
 
   function createSidebar() {
@@ -43,6 +45,9 @@
         </section>
         <section data-panel="composer">
           <div class="pp-card">
+            <div class="pp-row" style="justify-content: space-between; align-items: center;">
+              <div class="pp-status" id="pp-api-status"><span class="pp-loader" id="pp-api-loader"></span><span>Checking API…</span></div>
+            </div>
             <label class="pp-label">Goal</label>
             <select id="pp-goal">
               <option value="insight">Share insight</option>
@@ -60,7 +65,7 @@
                 <option>bold</option>
                 <option>analytical</option>
               </select>
-              <button id="pp-draft-ai" class="pp-primary">Predict & Draft</button>
+              <button id="pp-draft-ai" class="pp-primary" disabled title="Configure API key in Options to enable">Predict & Draft</button>
             </div>
             <div id="pp-ai-output" class="pp-output" hidden></div>
           </div>
@@ -110,11 +115,16 @@
     const trendingMetric = document.getElementById('pp-metric-trending');
 
     const root = document.querySelector('main') || document.body;
-    const mo = new MutationObserver(() => scan());
+    const mo = new MutationObserver(() => scheduleScan());
     mo.observe(root, { childList: true, subtree: true });
-    scan();
+    scheduleScan();
 
-    function scan() {
+    function scheduleScan() {
+      if (state.scanTimer) return;
+      state.scanTimer = setTimeout(() => { state.scanTimer = null; scanNow(); }, 250);
+    }
+
+    function scanNow() {
       const posts = document.querySelectorAll('div.feed-shared-update-v2, div.occludable-update, article, div.update-components-actor');
       let trendingCount = 0;
       postsMetric && (postsMetric.textContent = String(posts.length));
@@ -128,6 +138,7 @@
       });
       trendingMetric && (trendingMetric.textContent = String(trendingCount));
       renderTrendList();
+      renderBestWindows();
     }
 
     function renderTrendList() {
@@ -159,9 +170,24 @@
     try {
       const text = (node.textContent || '').trim();
       const hashtags = Array.from(new Set((text.match(/#\w+/g) || []).map(s => s.trim())));
-      const likes = parseCount(text.match(/(\d+[,.]?\d*[kK]?)(?=\s*likes|\s*reactions)/i)?.[1]);
-      const comments = parseCount(text.match(/(\d+[,.]?\d*[kK]?)(?=\s*comments?)/i)?.[1]);
-      const hours = parseCount(text.match(/(\d+)(?=\s*h\b|\s*hours?)/i)?.[1]) || 24;
+      const likesEl = node.querySelector('[aria-label*="reactions" i], [data-test-reactions-count], .social-counts-reactions__num');
+      const commentsEl = node.querySelector('[aria-label*="comments" i], [data-test-comments-count]');
+      const timeEl = node.querySelector('time, [data-test-timestamp]');
+      const likes = likesEl ? parseCount(likesEl.textContent) : parseCount(text.match(/(\d+[,.]?\d*[kK]?)(?=\s*(likes|reactions))/i)?.[1]);
+      const comments = commentsEl ? parseCount(commentsEl.textContent) : parseCount(text.match(/(\d+[,.]?\d*[kK]?)(?=\s*comments?)/i)?.[1]);
+      let hours = 24;
+      if (timeEl?.getAttribute('datetime')) {
+        const dt = new Date(timeEl.getAttribute('datetime'));
+        hours = Math.max(1, (Date.now() - dt.getTime()) / 36e5);
+      } else {
+        const match = text.match(/(\d+)\s*([smhdw])/i);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          const u = match[2].toLowerCase();
+          const map = { s: 1/3600, m: 1/60, h: 1, d: 24, w: 24*7 };
+          hours = Math.max(1, n * (map[u] || 1));
+        }
+      }
       const author = node.querySelector('span.update-components-actor__title, a.app-aware-link, span.feed-shared-actor__title')?.textContent?.trim();
       const url = node.querySelector('a.app-aware-link[href*="/feed/update/"]')?.href || location.href;
       const engagement = (likes + comments * 2);
@@ -211,6 +237,7 @@
       const md = buildNoteMarkdown(post, note, tags);
       const metadata = buildMetadata(post, tags);
       await chrome.runtime.sendMessage({ type: 'PP_DOWNLOAD_ARTIFACTS', payload: { noteMarkdown: md, metadataJson: metadata, baseFileName: slugify((post.hashtags[0] || post.author || 'trend')) } });
+      showToast('Saved to ResearchVault');
       dlg.remove();
     });
   }
@@ -223,7 +250,7 @@
     const userPrompt = `Goal: ${goal}\nTone: ${tone}\nDraft or context:\n${draft}\n\nReturn 2 post variants with line breaks, a compelling hook, and 3 relevant hashtags.`;
     const out = document.getElementById('pp-ai-output');
     out.hidden = false;
-    out.textContent = 'Thinking…';
+    out.innerHTML = '<div class="pp-status"><span class="pp-loader"></span><span>Scoring and drafting…</span></div>';
     try {
       const { ok, result, error } = await chrome.runtime.sendMessage({ type: 'PP_CALL_LLM', payload: { systemPrompt, userPrompt, temperature: 0.7, maxTokens: 450 } });
       if (!ok) throw new Error(error || 'LLM failed');
@@ -237,7 +264,7 @@
         out.appendChild(card);
       });
     } catch (e) {
-      out.textContent = 'Error: ' + (e?.message || String(e));
+      out.innerHTML = `<div class="pp-status bad">Error: ${escapeHtml(e?.message || String(e))}</div>`;
     }
   }
 
@@ -290,5 +317,46 @@
   createSidebar();
   ensureToggle();
   observeFeed();
+  // API status and enable/disable composer
+  chrome.runtime.sendMessage({ type: 'PP_GET_STATUS' }, (resp) => {
+    const badge = document.getElementById('pp-api-status');
+    const btn = document.getElementById('pp-draft-ai');
+    const loader = document.getElementById('pp-api-loader');
+    if (loader) loader.remove();
+    if (!badge || !btn) return;
+    if (!resp?.ok) {
+      badge.classList.add('bad');
+      badge.innerHTML = 'Error reading status';
+      return;
+    }
+    state.hasApiKey = Boolean(resp.status?.hasKey);
+    if (state.hasApiKey) {
+      badge.classList.remove('bad');
+      badge.innerHTML = `LLM: ${escapeHtml(resp.status.provider)} • ${escapeHtml(resp.status.model)}`;
+      btn.disabled = false;
+      btn.removeAttribute('title');
+    } else {
+      badge.classList.add('bad');
+      badge.innerHTML = 'LLM not configured — set API key in Options';
+      btn.disabled = true;
+      btn.title = 'Configure API key in Options to enable';
+    }
+  });
+
+  function renderBestWindows() {
+    const el = document.getElementById('pp-best-windows');
+    if (!el || el.childElementCount > 0) return;
+    const windows = ['08:00–09:00','12:00–13:00','17:00–18:00'];
+    el.innerHTML = windows.map(w => `<span class="pill">${w}</span>`).join('');
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'pp-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 250); }, 2200);
+  }
 })();
 

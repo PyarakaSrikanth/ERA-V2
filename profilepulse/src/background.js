@@ -22,6 +22,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message?.type === 'PP_CALL_LLM') {
         const result = await callLLM(message.payload);
         sendResponse({ ok: true, result });
+      } else if (message?.type === 'PP_GET_STATUS') {
+        const cfg = await chrome.storage.sync.get([SETTINGS_KEYS.llmProvider, SETTINGS_KEYS.apiKey, SETTINGS_KEYS.model]);
+        sendResponse({ ok: true, status: {
+          provider: cfg[SETTINGS_KEYS.llmProvider] || 'openai',
+          model: cfg[SETTINGS_KEYS.model] || 'gpt-4o-mini',
+          hasKey: Boolean(cfg[SETTINGS_KEYS.apiKey])
+        }});
       } else if (message?.type === 'PP_DOWNLOAD_ARTIFACTS') {
         await downloadArtifacts(message.payload);
         sendResponse({ ok: true });
@@ -59,7 +66,11 @@ async function callLLM({ systemPrompt, userPrompt, temperature = 0.7, maxTokens 
         ].filter(Boolean),
       }),
     });
-    if (!resp.ok) throw new Error(`LLM HTTP ${resp.status}`);
+    if (!resp.ok) {
+      if (resp.status === 401) throw new Error('Unauthorized. Check your API key.');
+      if (resp.status === 429) throw new Error('Rate limited. Please try again later.');
+      throw new Error(`LLM HTTP ${resp.status}`);
+    }
     const data = await resp.json();
     return data.choices?.[0]?.message?.content?.trim() || '';
   }

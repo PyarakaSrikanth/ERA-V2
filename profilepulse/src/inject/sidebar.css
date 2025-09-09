@@ -20,8 +20,8 @@
   right: -420px;
   width: 420px;
   height: 100vh;
-  background: rgba(255,255,255,0.9);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.9));
+  backdrop-filter: saturate(120%) blur(12px);
   border-left: 1px solid rgba(0,0,0,0.06);
   box-shadow: -8px 0 24px rgba(0,0,0,0.08);
   z-index: 2147483000;
@@ -37,13 +37,13 @@
 
 .pp-tabs { display: flex; gap: 6px; padding: 0 12px 10px; border-bottom: 1px solid rgba(0,0,0,0.06); }
 .pp-tabs button { appearance: none; border: none; background: transparent; padding: 8px 10px; border-radius: 8px; cursor: pointer; color: #333; }
-.pp-tabs button.active { background: #eef0ff; color: #2534ff; }
+.pp-tabs button.active { background: #eef0ff; color: #2534ff; box-shadow: inset 0 0 0 1px #d9ddff; }
 
 .pp-panels { padding: 12px; height: calc(100vh - 94px); overflow: auto; }
 .pp-panels > section { display: none; }
 .pp-panels > section.active { display: block; }
 
-.pp-card { background: white; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+.pp-card { background: radial-gradient(120% 100% at 0% 0%, #ffffff, #fbfbff); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; padding: 12px; margin-bottom: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
 .pp-card-title { font-weight: 600; margin-bottom: 8px; }
 .pp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pp-metric { background: #f7f8ff; border-radius: 10px; padding: 10px; }
@@ -60,8 +60,10 @@
 .pp-label { font-size: 12px; color: #333; margin: 8px 0 4px; display: block; }
 .pp-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .pp-row.end { justify-content: flex-end; }
-.pp-primary { background: linear-gradient(135deg, #6B8AFB, #9BA7FF); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
-.pp-secondary { background: #f2f3f7; color: #111; border: 1px solid rgba(0,0,0,0.08); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.pp-primary { background: linear-gradient(135deg, #6B8AFB, #9BA7FF); color: white; border: none; padding: 8px 12px; border-radius: 10px; cursor: pointer; transition: transform .06s ease, box-shadow .2s ease; box-shadow: 0 6px 16px rgba(107,138,251,.35); }
+.pp-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(107,138,251,.45); }
+.pp-secondary { background: #f2f3f7; color: #111; border: 1px solid rgba(0,0,0,0.08); padding: 6px 10px; border-radius: 10px; cursor: pointer; transition: background .2s ease; }
+.pp-secondary:hover { background: #eceef5; }
 
 .pp-output { display: grid; gap: 8px; margin-top: 10px; }
 .pp-variant { border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 8px; background: #fff; }
@@ -76,6 +78,16 @@
 .pp-dialog-title { font-weight: 700; margin-bottom: 8px; }
 .pp-dialog input, .pp-dialog textarea, select { width: 100%; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 8px; font: inherit; }
 
+/* Status pill & loader */
+.pp-status { display: inline-flex; align-items: center; gap: 6px; background: #f5f6ff; color: #2433ff; border: 1px solid #dfe3ff; padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+.pp-status.bad { background: #fff5f5; color: #d12d2d; border-color: #ffdede; }
+.pp-loader { width: 14px; height: 14px; border: 2px solid #d9ddff; border-top-color: #6b8afb; border-radius: 50%; animation: pp-spin 0.9s linear infinite; }
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.pp-toast { position: fixed; bottom: 20px; right: 76px; background: #111; color: #fff; padding: 10px 12px; border-radius: 10px; box-shadow: 0 12px 24px rgba(0,0,0,.25); z-index: 2147483002; opacity: 0; transform: translateY(8px); transition: all .25s ease; }
+.pp-toast.show { opacity: 1; transform: translateY(0); }
+
 @media (prefers-color-scheme: dark) {
   .pp-sidebar { background: rgba(22,22,26,0.8); color: #efefef; border-left-color: rgba(255,255,255,0.08); }
   .pp-card { background: #111218; border-color: rgba(255,255,255,0.08); box-shadow: none; }
@@ -85,5 +97,6 @@
   .pp-pre { background: #0e0f14; border-color: #222; color: #d8d8ea; }
   .pp-save { background: #171822; color: #c6d0ff; border-color: rgba(255,255,255,0.12); }
   .pp-dialog-card { background: #151723; border-color: rgba(255,255,255,0.1); }
+  .pp-toast { background: #0d0f18; }
 }
 
