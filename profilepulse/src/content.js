@@ -272,8 +272,12 @@
       const note = dlg.querySelector('#pp-note')?.value || '';
       const md = buildNoteMarkdown(post, note, tags);
       const metadata = buildMetadata(post, tags);
-      await chrome.runtime.sendMessage({ type: 'PP_DOWNLOAD_ARTIFACTS', payload: { noteMarkdown: md, metadataJson: metadata, baseFileName: slugify((post.hashtags[0] || post.author || 'trend')) } });
-      showToast('Saved to ResearchVault');
+      const resp = await chrome.runtime.sendMessage({ type: 'PP_DOWNLOAD_ARTIFACTS', payload: { noteMarkdown: md, metadataJson: metadata, baseFileName: slugify((post.hashtags[0] || post.author || 'trend')) } });
+      if (resp?.ok) {
+        showToast(`Saved: ${resp.info.directory}`);
+      } else {
+        showToast('Save failed');
+      }
       dlg.remove();
     });
   }

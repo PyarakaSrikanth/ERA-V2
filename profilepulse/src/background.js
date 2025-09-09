@@ -45,8 +45,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           hasKey: Boolean(cfg[SETTINGS_KEYS.apiKey])
         }});
       } else if (message?.type === 'PP_DOWNLOAD_ARTIFACTS') {
-        await downloadArtifacts(message.payload);
-        sendResponse({ ok: true });
+        const info = await downloadArtifacts(message.payload);
+        sendResponse({ ok: true, info });
       } else if (message?.type === 'PP_GET_PREFS') {
         const cfg = await chrome.storage.sync.get([SETTINGS_KEYS.saveAs]);
         sendResponse({ ok: true, prefs: { saveAs: Boolean(cfg[SETTINGS_KEYS.saveAs]) }});
@@ -120,15 +120,18 @@ async function downloadArtifacts({ noteMarkdown, metadataJson, baseFileName = 'p
   const { [SETTINGS_KEYS.saveAs]: saveAsPref } = await chrome.storage.sync.get([SETTINGS_KEYS.saveAs]);
   const ts = new Date().toISOString().replaceAll(':', '-');
   const safeBase = `${baseFileName}_${ts}`;
+  const notePath = `ProfilePulse/ResearchVault/${safeBase}/note.md`;
+  const metaPath = `ProfilePulse/ResearchVault/${safeBase}/metadata.json`;
   await chrome.downloads.download({
     url: URL.createObjectURL(new Blob([noteMarkdown], { type: 'text/markdown' })),
-    filename: `ProfilePulse/ResearchVault/${safeBase}/note.md`,
+    filename: notePath,
     saveAs: Boolean(saveAsPref),
   });
   await chrome.downloads.download({
     url: URL.createObjectURL(new Blob([JSON.stringify(metadataJson, null, 2)], { type: 'application/json' })),
-    filename: `ProfilePulse/ResearchVault/${safeBase}/metadata.json`,
+    filename: metaPath,
     saveAs: false,
   });
+  return { directory: `ProfilePulse/ResearchVault/${safeBase}/`, notePath, metadataPath: metaPath, saveAs: Boolean(saveAsPref) };
 }
 
