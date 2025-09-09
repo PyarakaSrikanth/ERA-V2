@@ -73,6 +73,7 @@
 .pp-output { display: grid; gap: 8px; margin-top: 10px; }
 .pp-variant { border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; padding: 8px; background: #fff; }
 .pp-variant-title { font-weight: 600; margin-bottom: 6px; }
+.pp-score { display:inline-block; margin-left:8px; background:#e8fff4; color:#0f8f5d; border:1px solid #c8f3df; padding:0 6px; border-radius:999px; font-size:11px; }
 .pp-pre { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid #eee; }
 
 .pp-save { appearance: none; border: 1px solid rgba(0,0,0,0.1); background: #fff; color: #2534ff; padding: 3px 8px; border-radius: 999px; font-size: 12px; cursor: pointer; margin: 6px; }

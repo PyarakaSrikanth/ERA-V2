@@ -147,13 +147,19 @@
         .filter(p => p.velocityScore >= 0.7)
         .sort((a,b) => b.velocityScore - a.velocityScore)
         .slice(0, 20);
+      const trendIcon = chrome.runtime.getURL('assets/icons/trend.svg');
+      const saveIcon = chrome.runtime.getURL('assets/icons/save.svg');
+      const draftIcon = chrome.runtime.getURL('assets/icons/draft.svg');
       trendList.innerHTML = items.map(p => `
         <div class="pp-list-item">
           <div>
-            <div class="pp-item-title">${escapeHtml(p.author || 'Unknown')}</div>
+            <div class="pp-item-title"><img class="pp-icon-inline" src="${trendIcon}" alt=""/> ${escapeHtml(p.author || 'Unknown')} <span class="pp-chip">Hot</span></div>
             <div class="pp-item-sub">❤ ${p.likes}  💬 ${p.comments}  # ${p.hashtags.slice(0,3).join(' ')}</div>
           </div>
-          <button class="pp-secondary" data-save="${encodeURIComponent(p.url || location.href)}">Save</button>
+          <div class="pp-row">
+            <button class="pp-icon-btn" title="Draft from trend" data-draft="${encodeURIComponent(p.url || location.href)}"><img class="pp-icon" src="${draftIcon}" alt="Draft"/></button>
+            <button class="pp-icon-btn" title="Save note" data-save="${encodeURIComponent(p.url || location.href)}"><img class="pp-icon" src="${saveIcon}" alt="Save"/></button>
+          </div>
         </div>
       `).join('');
       trendList.querySelectorAll('button[data-save]').forEach(btn => {
@@ -161,6 +167,19 @@
           const url = decodeURIComponent(btn.getAttribute('data-save'));
           const match = items.find(i => (i.url || location.href) === url);
           if (match) openSaveDialog(match);
+        });
+      });
+      trendList.querySelectorAll('button[data-draft]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const url = decodeURIComponent(btn.getAttribute('data-draft'));
+          const match = items.find(i => (i.url || location.href) === url);
+          if (match) {
+            const seed = buildDraftFromTrend(match);
+            setDraftContent(seed);
+            switchTab('composer');
+            toggleSidebar();
+            toggleSidebar();
+          }
         });
       });
     }
@@ -246,8 +265,8 @@
     const tone = document.getElementById('pp-tone')?.value || 'professional';
     const goal = document.getElementById('pp-goal')?.value || 'insight';
     const draft = document.getElementById('pp-draft')?.value || '';
-    const systemPrompt = `You are ProfilePulse, a LinkedIn post writing expert. Optimize for scannability, strong hooks, and non-clickbait clarity.`;
-    const userPrompt = `Goal: ${goal}\nTone: ${tone}\nDraft or context:\n${draft}\n\nReturn 2 post variants with line breaks, a compelling hook, and 3 relevant hashtags.`;
+    const systemPrompt = `You are ProfilePulse, a LinkedIn post writing expert. Produce viral-leaning but credible posts with: 1) a strong but honest hook, 2) a tight body (3-6 bullets or short lines), 3) an example/story, 4) a single clear CTA, 5) 3-5 relevant hashtags. Keep it scannable.`;
+    const userPrompt = `Tone: ${tone}\nGoal: ${goal}\nContext or raw draft:\n${draft}\n\nReturn TWO variants separated by a line with three dashes (---).`;
     const out = document.getElementById('pp-ai-output');
     out.hidden = false;
     out.innerHTML = '<div class="pp-status"><span class="pp-loader"></span><span>Scoring and drafting…</span></div>';
@@ -255,17 +274,57 @@
       const { ok, result, error } = await chrome.runtime.sendMessage({ type: 'PP_CALL_LLM', payload: { systemPrompt, userPrompt, temperature: 0.7, maxTokens: 450 } });
       if (!ok) throw new Error(error || 'LLM failed');
       out.innerHTML = '';
-      const variants = result.split(/\n\s*\n/).slice(0,2);
+      const variants = result.split(/\n\-\-\-\n/).slice(0,2);
       variants.forEach((v, i) => {
         const card = document.createElement('div');
         card.className = 'pp-variant';
-        card.innerHTML = `<div class="pp-variant-title">Variant ${i+1}</div><pre class="pp-pre">${escapeHtml(v.trim())}</pre><button class="pp-secondary">Copy</button>`;
+        const scored = computeViralityScore(v);
+        card.innerHTML = `<div class=\"pp-variant-title\">Variant ${i+1} <span class=\"pp-score\">${scored.score}</span></div><pre class=\"pp-pre\">${escapeHtml(v.trim())}</pre><div class=\"pp-item-sub\">${escapeHtml(scored.reason)}</div><button class=\"pp-secondary\">Copy</button>`;
         card.querySelector('button')?.addEventListener('click', () => navigator.clipboard.writeText(v.trim()));
         out.appendChild(card);
       });
     } catch (e) {
       out.innerHTML = `<div class="pp-status bad">Error: ${escapeHtml(e?.message || String(e))}</div>`;
     }
+  }
+
+  function setDraftContent(text) {
+    const el = document.getElementById('pp-draft');
+    if (el) { el.value = text; }
+  }
+
+  function buildDraftFromTrend(p) {
+    const tags = p.hashtags.slice(0,3).join(' ');
+    return `HOOK: ${p.author} just sparked a conversation worth having.
+
+3 takeaways:
+- 
+- 
+- 
+
+Example:
+
+CTA: What’s your experience?
+
+${tags}`;
+  }
+
+  function computeViralityScore(text) {
+    const t = String(text || '');
+    const hasHook = /^.{1,120}\n/.test(t) || /(^|\n)[A-Z][^a-z]*:/.test(t);
+    const lines = t.split(/\n/).length;
+    const bullets = (t.match(/^\s*[-•]/gm) || []).length;
+    const hashtags = (t.match(/#\w+/g) || []).length;
+    const length = t.length;
+    let score = 50;
+    let reasons = [];
+    if (hasHook) { score += 15; reasons.push('Strong opening'); }
+    if (bullets >= 3 && bullets <= 6) { score += 10; reasons.push('Skimmable body'); }
+    if (hashtags >= 3 && hashtags <= 5) { score += 5; reasons.push('Good hashtag mix'); }
+    if (length >= 400 && length <= 1200) { score += 8; reasons.push('Optimal length'); }
+    if (lines >= 8 && lines <= 20) { score += 4; }
+    score = Math.max(0, Math.min(99, Math.round(score)));
+    return { score, reason: reasons.join(' • ') || 'Balanced draft' };
   }
 
   function buildNoteMarkdown(post, note, tags) {
