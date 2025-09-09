@@ -2,6 +2,20 @@
 
 Elite, minimalist LinkedIn companion that surfaces real‑time insights, saves trends to a local research vault, and helps you compose viral‑ready posts with LLM assistance.
 
+## Features
+- Real‑time feed observer with debounced scanning for performance
+- TrendSpotter: trending detection by engagement velocity and save dialog
+  - One‑click Save adds Markdown note + JSON metadata via Downloads API
+  - Inline save button injected on posts
+  - Robust selectors for likes/comments/timestamp; graceful fallbacks
+- Composer: AI drafting with status badge, loader, and error handling
+  - Predict & Draft generates two variants optimized for scannability
+  - Copy to clipboard from variants
+- Elite UI design: gradients, micro‑interactions, dark‑mode polish
+- Best posting windows pills (initial set, configurable in future)
+- New icons: trend, draft, save (SVGs) for a premium look
+- Privacy‑first: local‑first data, optional LLM calls with your key
+
 ## Install (Developer Mode)
 1. Build not required. This is a no‑build MV3 extension.
 2. Go to chrome://extensions → Enable Developer mode.
@@ -25,6 +39,16 @@ Elite, minimalist LinkedIn companion that surfaces real‑time insights, saves t
 ## Limitations
 - LinkedIn DOM can change. If selectors break, update `src/content.js` heuristics.
 - Some analytics are approximations; rationale and confidence are surfaced instead of exact values.
+
+## Changelog
+- 0.1.1
+  - Elite design pass: gradients, micro‑interactions, dark mode polish
+  - TrendSpotter fixes: improved selectors, debounced scanning, save dialog
+  - Composer improvements: API status badge, loader, clearer errors
+  - Added best posting windows pills
+  - Added premium SVG icons (trend, draft, save)
+  - Updated manifest CSP/permissions for secure OpenAI calls
+  - README updated with features and changes
 
 ## License
 MIT
