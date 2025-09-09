@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ProfilePulse — LinkedIn Co‑Pilot",
   "description": "Real‑time LinkedIn insights, trend saving, and AI post composer for virality.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "action": {
     "default_title": "ProfilePulse",
     "default_popup": "popup.html"
@@ -33,7 +33,8 @@
     "storage",
     "alarms",
     "notifications",
-    "downloads"
+    "downloads",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://www.linkedin.com/*",

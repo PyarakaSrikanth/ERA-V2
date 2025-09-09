@@ -4,15 +4,24 @@ const SETTINGS_KEYS = {
   llmProvider: 'pp_llm_provider',
   apiKey: 'pp_api_key',
   model: 'pp_model',
+  saveAs: 'pp_save_as',
   emailDigest: 'pp_email_digest',
 };
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.get([SETTINGS_KEYS.llmProvider, SETTINGS_KEYS.model], (cfg) => {
+  chrome.storage.sync.get([SETTINGS_KEYS.llmProvider, SETTINGS_KEYS.model, SETTINGS_KEYS.saveAs], (cfg) => {
     const updates = {};
     if (!cfg[SETTINGS_KEYS.llmProvider]) updates[SETTINGS_KEYS.llmProvider] = 'openai';
     if (!cfg[SETTINGS_KEYS.model]) updates[SETTINGS_KEYS.model] = 'gpt-4o-mini';
+    if (typeof cfg[SETTINGS_KEYS.saveAs] === 'undefined') updates[SETTINGS_KEYS.saveAs] = true;
     if (Object.keys(updates).length) chrome.storage.sync.set(updates);
+  });
+
+  chrome.contextMenus.create({
+    id: 'pp-save-linkedin',
+    title: 'Save to ProfilePulse',
+    contexts: ['link', 'selection', 'page'],
+    documentUrlPatterns: ['https://www.linkedin.com/*']
   });
 });
 
@@ -32,6 +41,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } else if (message?.type === 'PP_DOWNLOAD_ARTIFACTS') {
         await downloadArtifacts(message.payload);
         sendResponse({ ok: true });
+      } else if (message?.type === 'PP_GET_PREFS') {
+        const cfg = await chrome.storage.sync.get([SETTINGS_KEYS.saveAs]);
+        sendResponse({ ok: true, prefs: { saveAs: Boolean(cfg[SETTINGS_KEYS.saveAs]) }});
       } else {
         sendResponse({ ok: false, error: 'Unknown message type' });
       }
@@ -40,6 +52,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   })();
   return true;
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  try {
+    if (info.menuItemId === 'pp-save-linkedin' && tab?.id) {
+      const url = info.linkUrl || info.pageUrl;
+      chrome.tabs.sendMessage(tab.id, { type: 'PP_SAVE_FROM_LINK', url, selectionText: info.selectionText || '' });
+    }
+  } catch (e) {
+    // no-op
+  }
 });
 
 async function callLLM({ systemPrompt, userPrompt, temperature = 0.7, maxTokens = 600 }) {
@@ -79,12 +102,13 @@ async function callLLM({ systemPrompt, userPrompt, temperature = 0.7, maxTokens 
 }
 
 async function downloadArtifacts({ noteMarkdown, metadataJson, baseFileName = 'profilepulse_note' }) {
+  const { [SETTINGS_KEYS.saveAs]: saveAsPref } = await chrome.storage.sync.get([SETTINGS_KEYS.saveAs]);
   const ts = new Date().toISOString().replaceAll(':', '-');
   const safeBase = `${baseFileName}_${ts}`;
   await chrome.downloads.download({
     url: URL.createObjectURL(new Blob([noteMarkdown], { type: 'text/markdown' })),
     filename: `ProfilePulse/ResearchVault/${safeBase}/note.md`,
-    saveAs: false,
+    saveAs: Boolean(saveAsPref),
   });
   await chrome.downloads.download({
     url: URL.createObjectURL(new Blob([JSON.stringify(metadataJson, null, 2)], { type: 'application/json' })),

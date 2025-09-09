@@ -154,7 +154,7 @@
         <div class="pp-list-item">
           <div>
             <div class="pp-item-title"><img class="pp-icon-inline" src="${trendIcon}" alt=""/> ${escapeHtml(p.author || 'Unknown')} <span class="pp-chip">Hot</span></div>
-            <div class="pp-item-sub">❤ ${p.likes}  💬 ${p.comments}  # ${p.hashtags.slice(0,3).join(' ')}</div>
+            <div class="pp-item-sub">❤ ${p.likes}  💬 ${p.comments}  # ${p.hashtags.slice(0,3).join(' ')} • ${escapeHtml(explainWhyTrending(p))}</div>
           </div>
           <div class="pp-row">
             <button class="pp-icon-btn" title="Draft from trend" data-draft="${encodeURIComponent(p.url || location.href)}"><img class="pp-icon" src="${draftIcon}" alt="Draft"/></button>
@@ -328,7 +328,7 @@ ${tags}`;
   }
 
   function buildNoteMarkdown(post, note, tags) {
-    return `# Trend Note — ${post.hashtags[0] || post.author || 'LinkedIn'}\n- Source: ${post.url || location.href}\n- Author: ${post.author || 'Unknown'}\n- Captured: ${new Date().toISOString()}\n- Entities: ${post.hashtags.join(' ')}\n\n## Why it’s trending\n${note || '—'}\n\n## Post outline\n- Hook:\n- Insight:\n- Example:\n- CTA:\n\nTags: ${tags}`;
+    return `# Trend Note — ${post.hashtags[0] || post.author || 'LinkedIn'}\n- Source: ${post.url || location.href}\n- Author: ${post.author || 'Unknown'}\n- Captured: ${new Date().toISOString()}\n- Entities: ${post.hashtags.join(' ')}\n- Why trending: ${explainWhyTrending(post)}\n\n## My angle\n${note || '—'}\n\n## Post outline\n- Hook:\n- Insight:\n- Example:\n- CTA:\n\nTags: ${tags}`;
   }
 
   function buildMetadata(post, tags) {
@@ -370,6 +370,22 @@ ${tags}`;
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  // Context menu handler save from link or selection
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type === 'PP_SAVE_FROM_LINK') {
+      const post = { hashtags: [], likes: 0, comments: 0, author: 'LinkedIn', url: msg.url || location.href, velocityScore: 0 };
+      openSaveDialog(post);
+    }
+  });
+
+  function explainWhyTrending(p) {
+    const factors = [];
+    if (p.likes > 1000 || p.comments > 200) factors.push('high engagement');
+    if (p.hashtags.includes('#AI') || p.hashtags.includes('#jobs')) factors.push('hot topic');
+    if (p.velocityScore > 0.8) factors.push('fast velocity');
+    return factors.length ? factors.join(', ') : 'above-average engagement';
   }
 
   // Boot
