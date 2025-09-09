@@ -153,6 +153,7 @@
       const trendIcon = chrome.runtime.getURL('assets/icons/trend.svg');
       const saveIcon = chrome.runtime.getURL('assets/icons/save.svg');
       const draftIcon = chrome.runtime.getURL('assets/icons/draft.svg');
+      const xIcon = chrome.runtime.getURL('assets/icons/x.svg');
       trendList.innerHTML = items.map(p => `
         <div class="pp-list-item">
           <div>
@@ -162,6 +163,7 @@
           <div class="pp-row">
             <button class="pp-icon-btn" title="Draft from trend" data-draft="${encodeURIComponent(p.url || location.href)}"><img class="pp-icon" src="${draftIcon}" alt="Draft"/></button>
             <button class="pp-icon-btn" title="Save note" data-save="${encodeURIComponent(p.url || location.href)}"><img class="pp-icon" src="${saveIcon}" alt="Save"/></button>
+            <button class="pp-icon-btn" title="Share to X" data-x="${encodeURIComponent(p.url || location.href)}"><img class="pp-icon" src="${xIcon}" alt="X"/></button>
           </div>
         </div>
       `).join('');
@@ -183,6 +185,13 @@
             toggleSidebar();
             toggleSidebar();
           }
+        });
+      });
+      trendList.querySelectorAll('button[data-x]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const url = decodeURIComponent(btn.getAttribute('data-x'));
+          const intent = `https://x.com/intent/post?text=${encodeURIComponent(url)}`;
+          await chrome.runtime.sendMessage({ type: 'PP_OPEN_URL', payload: { url: intent } });
         });
       });
     }
@@ -282,8 +291,13 @@
         const card = document.createElement('div');
         card.className = 'pp-variant';
         const scored = computeViralityScore(v);
-        card.innerHTML = `<div class=\"pp-variant-title\">Variant ${i+1} <span class=\"pp-score\">${scored.score}</span></div><pre class=\"pp-pre\">${escapeHtml(v.trim())}</pre><div class=\"pp-item-sub\">${escapeHtml(scored.reason)}</div><button class=\"pp-secondary\">Copy</button>`;
-        card.querySelector('button')?.addEventListener('click', () => navigator.clipboard.writeText(v.trim()));
+        const xIcon = chrome.runtime.getURL('assets/icons/x.svg');
+        card.innerHTML = `<div class=\"pp-variant-title\">Variant ${i+1} <span class=\"pp-score\">${scored.score}</span></div><pre class=\"pp-pre\">${escapeHtml(v.trim())}</pre><div class=\"pp-item-sub\">${escapeHtml(scored.reason)}</div><div class=\"pp-row\"><button class=\"pp-secondary\" data-act=\"copy\">Copy</button><button class=\"pp-secondary\" data-act=\"x\"><img class=\"pp-icon-inline\" src=\"${xIcon}\" alt=\"\"/> Share to X</button></div>`;
+        card.querySelector('button[data-act="copy"]')?.addEventListener('click', () => navigator.clipboard.writeText(v.trim()));
+        card.querySelector('button[data-act="x"]')?.addEventListener('click', async () => {
+          const intent = `https://x.com/intent/post?text=${encodeURIComponent(v.trim())}`;
+          await chrome.runtime.sendMessage({ type: 'PP_OPEN_URL', payload: { url: intent } });
+        });
         out.appendChild(card);
       });
     } catch (e) {

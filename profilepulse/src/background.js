@@ -23,6 +23,12 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['link', 'selection', 'page'],
     documentUrlPatterns: ['https://www.linkedin.com/*']
   });
+  chrome.contextMenus.create({
+    id: 'pp-share-x',
+    title: 'Share to X',
+    contexts: ['link', 'selection'],
+    documentUrlPatterns: ['https://www.linkedin.com/*']
+  });
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -44,6 +50,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } else if (message?.type === 'PP_GET_PREFS') {
         const cfg = await chrome.storage.sync.get([SETTINGS_KEYS.saveAs]);
         sendResponse({ ok: true, prefs: { saveAs: Boolean(cfg[SETTINGS_KEYS.saveAs]) }});
+      } else if (message?.type === 'PP_OPEN_URL') {
+        await chrome.tabs.create({ url: message.payload?.url });
+        sendResponse({ ok: true });
       } else {
         sendResponse({ ok: false, error: 'Unknown message type' });
       }
@@ -59,6 +68,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === 'pp-save-linkedin' && tab?.id) {
       const url = info.linkUrl || info.pageUrl;
       chrome.tabs.sendMessage(tab.id, { type: 'PP_SAVE_FROM_LINK', url, selectionText: info.selectionText || '' });
+    } else if (info.menuItemId === 'pp-share-x') {
+      const raw = info.selectionText || '';
+      const url = info.linkUrl || info.pageUrl || '';
+      const text = raw ? `${raw}\n\n${url}` : url;
+      const intent = `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+      await chrome.tabs.create({ url: intent });
     }
   } catch (e) {
     // no-op
