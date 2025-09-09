@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "ProfilePulse — LinkedIn Co‑Pilot",
+  "description": "Real‑time LinkedIn insights, trend saving, and AI post composer for virality.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "ProfilePulse",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "assets/icons/icon16.svg",
+    "48": "assets/icons/icon48.svg",
+    "128": "assets/icons/icon128.svg"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/*"
+      ],
+      "js": ["src/content.js"],
+      "css": ["src/inject/sidebar.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms",
+    "notifications",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://api.openai.com/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://api.openai.com"
+  }
+}
