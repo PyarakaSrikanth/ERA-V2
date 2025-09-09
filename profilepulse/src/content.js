@@ -220,7 +220,12 @@
         }
       }
       const author = node.querySelector('span.update-components-actor__title, a.app-aware-link, span.feed-shared-actor__title')?.textContent?.trim();
-      const url = node.querySelector('a.app-aware-link[href*="/feed/update/"]')?.href || location.href;
+      const url = (
+        node.querySelector('a[href*="/feed/update/"]')?.href ||
+        node.querySelector('a[href*="/posts/"]')?.href ||
+        node.querySelector('a[href*="activity:"]')?.href ||
+        location.href
+      );
       const engagement = (likes + comments * 2);
       const velocity = engagement / Math.max(1, hours);
       const velocityScore = Math.max(0, Math.min(1, normalize(velocity, 0, 200)));
@@ -405,8 +410,26 @@ ${tags}`;
     if (msg?.type === 'PP_SAVE_FROM_LINK') {
       const post = { hashtags: [], likes: 0, comments: 0, author: 'LinkedIn', url: msg.url || location.href, velocityScore: 0 };
       openSaveDialog(post);
+    } else if (msg?.type === 'PP_GET_CONTEXT_POST_URL') {
+      chrome.runtime.sendMessage({ type: 'PP_CONTEXT_URL_RESPONSE', payload: { url: window.__PP_LAST_CONTEXT_URL__ || '' } });
     }
   });
+
+  // Track context target to resolve exact post permalink
+  document.addEventListener('contextmenu', (e) => {
+    try {
+      const el = e.target;
+      const postNode = el && (el.closest('div.feed-shared-update-v2, div.occludable-update, article, div.update-components-actor'));
+      if (postNode) {
+        const url = (
+          postNode.querySelector('a[href*="/feed/update/"]')?.href ||
+          postNode.querySelector('a[href*="/posts/"]')?.href ||
+          postNode.querySelector('a[href*="activity:"]')?.href || ''
+        );
+        window.__PP_LAST_CONTEXT_URL__ = url;
+      }
+    } catch {}
+  }, true);
 
   function explainWhyTrending(p) {
     const factors = [];
