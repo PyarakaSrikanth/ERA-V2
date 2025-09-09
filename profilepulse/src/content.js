@@ -67,6 +67,7 @@
               </select>
               <button id="pp-draft-ai" class="pp-primary" disabled title="Configure API key in Options to enable">Predict & Draft</button>
             </div>
+            <div id="pp-live-score" class="pp-live" hidden></div>
             <div id="pp-ai-output" class="pp-output" hidden></div>
           </div>
         </section>
@@ -82,6 +83,8 @@
 
     const draftBtn = container.querySelector('#pp-draft-ai');
     draftBtn?.addEventListener('click', onDraftAI);
+    const draftEl = container.querySelector('#pp-draft');
+    draftEl?.addEventListener('input', updateLiveScore);
 
     return container;
   }
@@ -288,9 +291,20 @@
     }
   }
 
+  function updateLiveScore() {
+    const live = document.getElementById('pp-live-score');
+    const draftEl = document.getElementById('pp-draft');
+    if (!live || !draftEl) return;
+    const text = draftEl.value || '';
+    if (!text.trim()) { live.hidden = true; live.innerHTML = ''; return; }
+    const scored = computeViralityScore(text);
+    live.hidden = false;
+    live.innerHTML = `<span class=\"pp-score\">${scored.score}</span><div class=\"pp-meter\"><span style=\"width:${scored.score}%\"></span></div><span class=\"pp-item-sub\">${escapeHtml(scored.reason)}</span>`;
+  }
+
   function setDraftContent(text) {
     const el = document.getElementById('pp-draft');
-    if (el) { el.value = text; }
+    if (el) { el.value = text; updateLiveScore(); }
   }
 
   function buildDraftFromTrend(p) {
